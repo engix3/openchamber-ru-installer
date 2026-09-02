@@ -100,7 +100,7 @@ if ($i18nFile) {
 
 Write-Step 'Restoring locale chunks from backups...'
 $localeFiles = Get-ChildItem -LiteralPath $assets -Filter '*.js' -ErrorAction SilentlyContinue | Where-Object {
-  $_.Name -match '^(en|fr|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja)-'
+  $_.Name -match '^(en|de|fr|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja)-'
 }
 $restored = 0
 foreach ($f in $localeFiles) {

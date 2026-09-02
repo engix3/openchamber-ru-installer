@@ -26,15 +26,29 @@
   - добавляет `ru: 'common.language.russian'` в `LOCALE_LABEL_KEYS`,
   - добавляет ветку `ru` / `ru-*` в `normalizeLocale`,
   - добавляет динамический импорт `import("./ru-<hash>.js")` в цепочку загрузчика словарей.
-- Патчит все остальные локали (`en`, `fr`, `zh-CN`, `zh-TW`, `uk`, `es`, `pt-BR`, `ko`, `pl`, `ja`), добавляя ключ `common.language.russian` (на каждом языке отображается как `"Russian"`).
+- Патчит все остальные локали (`en`, `de`, `fr`, `zh-CN`, `zh-TW`, `uk`, `es`, `pt-BR`, `ko`, `pl`, `ja`), добавляя ключ `common.language.russian` (на каждом языке отображается как `"Russian"`).
 
 ## Что входит
 - `install-desktop-ru.cmd` / `install-desktop-ru.ps1` — установщик.
 - `uninstall-desktop-ru.cmd` / `uninstall-desktop-ru.ps1` — удаление.
+- `update-ru-v1.21.1.ps1` — синхронизация отсутствующих строк с английскими словарями `v1.21.1` через совместимый с LibreTranslate сервис машинного перевода.
 - `i18n/messages/ru.ts` / `i18n/messages/ru.settings.ts` — исходники перевода.
 
+## Обновление перевода
+Проверить количество отсутствующих строк без изменений:
+```powershell
+.\update-ru-v1.21.1.ps1 -DryRun
+```
+
+Для массового машинного перевода укажите URL собственного или облачного LibreTranslate-совместимого API. Если сервис требует ключ, передайте его отдельным параметром:
+```powershell
+.\update-ru-v1.21.1.ps1 -TranslatorEndpoint "https://your-translator.example/translate" -ApiKey "your-api-key"
+```
+
+После успешной синхронизации снова запустите `install-desktop-ru.cmd`: он пересоберёт файл `ru-<hash>.js` из обновлённых словарей.
+
 ## Совместимость
-Тестировалось на OpenChamber Desktop **v1.14.1** (Windows x64, Electron-сборка).
+Тестировалось на OpenChamber Desktop **v1.21.1** (Windows x64, Electron-сборка).
 
 Скрипт не требует прав администратора: приложение ставится в `%LOCALAPPDATA%\Programs\` и пользователь имеет права на запись.
 

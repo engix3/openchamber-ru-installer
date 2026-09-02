@@ -290,26 +290,37 @@ $loader = [System.IO.File]::ReadAllText($i18nFile, [System.Text.Encoding]::UTF8)
 $origLoader = $loader
 
 $localesPatch = $false
-$m = [regex]::Match($loader, '\["en","fr","zh-CN","zh-TW","uk","es","pt-BR","ko","pl","ja"\]')
-if ($m.Success -and $loader -notmatch '"ru"') {
-  $loader = $loader.Substring(0, $m.Index) + '["en","fr","zh-CN","zh-TW","uk","es","pt-BR","ko","pl","ja","ru"]' + $loader.Substring($m.Index + $m.Length)
+$m = [regex]::Match($loader, '(\["en","de","fr","zh-CN","zh-TW","uk","es","pt-BR","ko","pl","ja"(?:,"tr")?)\]')
+if ($m.Success) {
+  $loader = $loader.Substring(0, $m.Index) + $m.Groups[1].Value + ',"ru"]' + $loader.Substring($m.Index + $m.Length)
   $localesPatch = $true
 }
 if ($localesPatch) { Write-Ok 'Patched LOCALES array.' } else { Write-Warn 'LOCALES array anchor not found (or "ru" already present).' }
 
 $labelsPatch = $false
-$m = [regex]::Match($loader, '(ja:"common\.language\.japanese"\s*,?\s*\})')
+$m = [regex]::Match($loader, '((ja:"common\.language\.japanese"|tr:"common\.language\.turkish")\s*,?\s*\})')
 if ($m.Success -and $loader -notmatch 'ru:"common\.language\.russian"') {
-  $replacement = 'ja:"common.language.japanese",ru:"common.language.russian"}'
+  $replacement = $m.Groups[2].Value + ',ru:"common.language.russian"}'
   $loader = $loader.Substring(0, $m.Index) + $replacement + $loader.Substring($m.Index + $m.Length)
   $labelsPatch = $true
 }
 if ($labelsPatch) { Write-Ok 'Patched LOCALE_LABEL_KEYS.' } else { Write-Warn 'LOCALE_LABEL_KEYS anchor not found (or ru label already present).' }
 
+$englishLabelPatch = $false
+if ($loader -notmatch '"common\.language\.russian"\s*:\s*"Russian"') {
+  $m = [regex]::Match($loader, '("common\.language\.polish"\s*:\s*"[^"]+",)')
+  if ($m.Success) {
+    $replacement = $m.Value + '"common.language.russian":"Russian",'
+    $loader = $loader.Substring(0, $m.Index) + $replacement + $loader.Substring($m.Index + $m.Length)
+    $englishLabelPatch = $true
+  }
+}
+if ($englishLabelPatch) { Write-Ok 'Patched English Russian-language label.' } else { Write-Warn 'English Russian-language label anchor not found (or already present).' }
+
 $normPatch = $false
-$m = [regex]::Match($loader, '(e==="pl"\|\|e\.startsWith\("pl-"\)\?"pl":\$1\})')
+$m = [regex]::Match($loader, '(e==="(?:pl|tr)"\|\|e\.startsWith\("(?:pl|tr)-"\)\?"(?:pl|tr)":)([A-Za-z_$][A-Za-z0-9_$]*)')
 if ($m.Success -and $loader -notmatch 'e==="ru"\|\|e\.startsWith\("ru-"\)') {
-  $replacement = 'e==="pl"||e.startsWith("pl-")?"pl":e==="ru"||e.startsWith("ru-")?"ru":$1}'
+  $replacement = $m.Groups[1].Value + 'e==="ru"||e.startsWith("ru-")?"ru":' + $m.Groups[2].Value
   $loader = $loader.Substring(0, $m.Index) + $replacement + $loader.Substring($m.Index + $m.Length)
   $normPatch = $true
 }
@@ -317,25 +328,22 @@ if ($normPatch) { Write-Ok 'Patched normalizeLocale.' } else { Write-Warn 'norma
 
 $importPatch = $false
 # Remove any stale ru import first
-$loader = $loader -replace ':t==="ru"\?await\s+[a-zA-Z_]+\(\(\)=>import\("\./ru-[A-Za-z0-9_-]+\.js"\),\[\]\)', ''
-$m = [regex]::Match($loader, 't==="pl"\?await\s+([a-zA-Z_]+)\(\(\)=>import\("\./pl-[A-Za-z0-9_-]+\.js"\),\[\]\)')
+$loader = $loader -replace ':t==="ru"\?await\s+[A-Za-z_$][A-Za-z0-9_$]*\(\(\)=>import\("\./ru-[A-Za-z0-9_-]+\.js"\),\[\]\)', ''
+$m = [regex]::Match($loader, '(:t===\"(?:ja|tr)\"\?await\s+([A-Za-z_$][A-Za-z0-9_$]*)\(\(\)=>import\(\"\./(?:ja|tr)-[A-Za-z0-9_-]+\.js\"\),.*?\)\))(:\{dict:[A-Za-z_$][A-Za-z0-9_$]*\})')
 if ($m.Success -and $loader -notmatch ([regex]::Escape($ruFileName))) {
-  $importFn = $m.Groups[1].Value
-  $ruImport = ':t==="ru"?await ' + $importFn + '(()=>import("./' + $ruFileName + '"),[])'
-  $insertionPoint = $m.Index + $m.Length
-  $loader = $loader.Substring(0, $insertionPoint) + $ruImport + $loader.Substring($insertionPoint)
+  $ruImport = ':t==="ru"?await ' + $m.Groups[2].Value + '(()=>import("./' + $ruFileName + '"),[])'
+  $loader = $loader.Substring(0, $m.Index) + $m.Groups[1].Value + $ruImport + $m.Groups[3].Value + $loader.Substring($m.Index + $m.Length)
   $importPatch = $true
 }
 if ($importPatch) { Write-Ok 'Patched dynamic import chain.' } else { Write-Warn 'Dynamic import anchor not found (or ru import already present).' }
 
-$jfPatch = $false
-$m = [regex]::Match($loader, 'function JF\(\)\{Is\.getState\(\)\.setLocale\(KF\(\)\)\}')
-if ($m.Success -and $loader -notmatch 'y3\.delete\("ru"\)') {
-  $replacement = 'function JF(){try{typeof window!="undefined"&&window.localStorage.setItem("openchamber.i18n.v1",JSON.stringify({locale:"ru"}))}catch{}try{y3.delete("ru")}catch(e){}Is.getState().setLocale("ru")}'
-  $loader = $loader.Substring(0, $m.Index) + $replacement + $loader.Substring($m.Index + $m.Length)
-  $jfPatch = $true
+if (-not ($localesPatch -or $loader -match '\["en","de","fr","zh-CN","zh-TW","uk","es","pt-BR","ko","pl","ja"(?:,"tr")?,"ru"\]') -or
+    -not ($labelsPatch -or $loader -match 'ru:"common\.language\.russian"') -or
+    -not ($englishLabelPatch -or $loader -match '"common\.language\.russian"\s*:\s*"Russian"') -or
+    -not ($normPatch -or $loader -match 'e==="ru"\|\|e\.startsWith\("ru-"\)') -or
+    -not ($importPatch -or $loader -match ([regex]::Escape($ruFileName)))) {
+  throw 'Could not apply all required i18n patches. No loader changes were saved.'
 }
-if ($jfPatch) { Write-Ok 'Forced Russian locale on startup (y3 + setLocale).' } else { Write-Warn 'JF() anchor not found or already patched.' }
 
 if ($loader -ne $origLoader) {
   Write-Utf8NoBom -Path $i18nFile -Content $loader
@@ -346,7 +354,7 @@ if ($loader -ne $origLoader) {
 
 Write-Step 'Patching other locale chunks to add common.language.russian...'
 $localeFiles = Get-ChildItem -LiteralPath $assets -Filter '*.js' -ErrorAction SilentlyContinue | Where-Object {
-  $_.Name -match '^(en|fr|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja)-' -and $_.Name -notmatch '^ru-'
+  $_.Name -match '^(en|de|fr|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja|tr)-' -and $_.Name -notmatch '^ru-'
 }
 foreach ($f in $localeFiles) {
   $bak = "$($f.FullName).bak"
