@@ -2,6 +2,7 @@ import { settingsDict } from './ru.settings';
 
 export const dict = {
   ...settingsDict,
+  "sessions.sidebar.projectAction.active": "Действие проекта выполняется",
   "common.loading": "Загрузка...",
   "common.unavailable": "Недоступно",
   "common.language.english": "Английский",
@@ -396,6 +397,8 @@ export const dict = {
   "sessions.sidebar.sessionDialogs.worktree.attachedArchived": "Привязанная сессия рабочей копии заархивирована.",
   "sessions.sidebar.sessionDialogs.worktree.attachedArchivedPlural": "Привязанные сессии рабочей копии заархивированы.",
   "sessions.sidebar.sessionDialogs.worktree.archivedAndRemoteRemoved": "Сессии рабочей копии заархивированы, удалённые ветки удалены.",
+  "sessions.missingDirectory.movedToProject": "Папка этой сессии больше не существует. Сессия перемещена в {project}.",
+  "sessions.sidebar.group.worktreeMissing": "Папка рабочей копии отсутствует",
   "sessions.sidebar.sessionDialogs.worktree.label": "Рабочая копия",
   "sessions.sidebar.sessionDialogs.worktree.pathUnavailable": "Путь к рабочей копии недоступен.",
   "sessions.sidebar.sessionDialogs.worktree.uncommittedWarning": "Незафиксированные изменения будут отменены.",
