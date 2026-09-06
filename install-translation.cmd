@@ -17,7 +17,7 @@ echo  OpenChamber Desktop - Russian Translation
 echo ============================================
 echo.
 
-call "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%install-desktop-ru.ps1" -OpenChamberPath "%TARGET%"
+call "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%scripts\install-translation.ps1" -OpenChamberPath "%TARGET%"
 set "EXIT_CODE=%ERRORLEVEL%"
 
 if not "%EXIT_CODE%"=="0" (

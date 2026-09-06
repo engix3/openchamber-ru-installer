@@ -1,72 +1,62 @@
-# Установщик русского перевода для OpenChamber Desktop
+# Русский перевод OpenChamber Desktop
 
-Простой установщик русского перевода для **десктоп-версии** OpenChamber (Windows, Electron).
+Форк [`kotobarsik/openchamber-ru-installer`](https://github.com/kotobarsik/openchamber-ru-installer) с упрощённым обновлением русского перевода для OpenChamber Desktop на Windows.
 
-## Установка
-1. Установите OpenChamber Desktop (скачайте установщик с https://github.com/openchamber/openchamber/releases).
-2. Скачайте этот репозиторий (Code → Download ZIP или `git clone`).
-3. Запустите `install-desktop-ru.cmd`.
-   - Путь к установленному OpenChamber будет найден автоматически (через реестр / `%LOCALAPPDATA%\Programs\@openchamberelectron`).
-   - Если автообнаружение не сработало, передайте путь аргументом:
-     ```
-     install-desktop-ru.cmd "C:\Users\Имя\AppData\Local\Programs\@openchamberelectron"
-     ```
-4. Полностью закройте OpenChamber (через значок в трее → Quit).
-5. Запустите OpenChamber снова, откройте **Settings → Appearance → Language → Russian**.
+## Быстрый старт
 
-## После обновления OpenChamber
+1. Установите OpenChamber Desktop из [официальных релизов](https://github.com/openchamber/openchamber/releases).
+2. Скачайте этот репозиторий через **Code → Download ZIP**.
+3. Полностью закройте OpenChamber через значок в трее → **Quit**.
+4. Запустите `install-translation.cmd`.
+5. Запустите OpenChamber и выберите **Settings → Appearance → Language → Russian**.
 
-Официальное обновление заменяет `resources\web-dist`, поэтому запустите `refresh-desktop-ru.cmd`.
-Скрипт заново найдёт текущую установку и применит перевод к новой версии:
+Обычно путь к OpenChamber определяется автоматически. Если это не сработало, передайте его первым аргументом:
 
 ```cmd
-refresh-desktop-ru.cmd
+install-translation.cmd "C:\Users\Имя\AppData\Local\Programs\@openchamberelectron"
 ```
+
+## После обновления
+
+Официальное обновление OpenChamber заменяет файлы интерфейса. После него:
+
+1. Полностью закройте OpenChamber.
+2. Запустите `update-translation.cmd`.
+3. Запустите OpenChamber снова.
+
+Команда сама найдёт текущую установку и заново применит перевод:
+
+```cmd
+update-translation.cmd
+```
+
+Если появились новые пункты интерфейса, обновите словари командой `update-translation.ps1`. Она проверит текущую версию OpenChamber и найдёт отсутствующие ключи. Для автоматического перевода новых строк потребуется LibreTranslate-совместимый сервис:
+
+```powershell
+.\scripts\update-translation.ps1 -TranslatorEndpoint "https://your-translator.example/translate" -ApiKey "your-api-key"
+```
+
+После этого снова запустите `update-translation.cmd`.
 
 ## Удаление
-Запустите `uninstall-desktop-ru.cmd` — оригинальные файлы будут восстановлены из резервных копий (`.bak`), а `ru-*.js` удалён.
 
-## Что делает установщик
-- Находит установленное приложение OpenChamber (реестр / стандартные пути).
-- Создаёт резервные копии (`.bak`) патчимых файлов в `resources\web-dist\assets\`.
-- Генерирует чанк `ru-<hash>.js` из `i18n/messages/ru.ts` и `i18n/messages/ru.settings.ts`.
-- Патчит `useAppFontEffects-*.js`:
-  - добавляет `'ru'` в массив `LOCALES`,
-  - добавляет `ru: 'common.language.russian'` в `LOCALE_LABEL_KEYS`,
-  - добавляет ветку `ru` / `ru-*` в `normalizeLocale`,
-  - добавляет динамический импорт `import("./ru-<hash>.js")` в цепочку загрузчика словарей.
-- Патчит все остальные локали (`en`, `de`, `fr`, `zh-CN`, `zh-TW`, `uk`, `es`, `pt-BR`, `ko`, `pl`, `ja`), добавляя ключ `common.language.russian` (на каждом языке отображается как `"Russian"`).
+Полностью закройте OpenChamber и запустите `uninstall-translation.cmd`. Оригинальные файлы будут восстановлены из резервных копий, а русский чанк удалён.
 
-## Что входит
-- `install-desktop-ru.cmd` / `install-desktop-ru.ps1` — установщик.
-- `uninstall-desktop-ru.cmd` / `uninstall-desktop-ru.ps1` — удаление.
-- `refresh-desktop-ru.cmd` — повторное применение перевода после обновления OpenChamber.
-- `update-ru-v1.21.1.ps1` — синхронизация отсутствующих строк с английскими словарями; версия определяется по `OpenChamber.exe` автоматически.
-- `i18n/messages/ru.ts` / `i18n/messages/ru.settings.ts` — исходники перевода.
+## Файлы
 
-## Обновление перевода
-Проверить количество отсутствующих строк без изменений:
-```powershell
-.\update-ru-v1.21.1.ps1 -DryRun
-```
-
-Для массового машинного перевода укажите URL собственного или облачного LibreTranslate-совместимого API. Если сервис требует ключ, передайте его отдельным параметром:
-```powershell
-.\update-ru-v1.21.1.ps1 -TranslatorEndpoint "https://your-translator.example/translate" -ApiKey "your-api-key"
-```
-
-После успешной синхронизации снова запустите `install-desktop-ru.cmd`: он пересоберёт файл `ru-<hash>.js` из обновлённых словарей.
-
-## Совместимость
-Тестировалось на OpenChamber Desktop **v1.21.1** (Windows x64, Electron-сборка).
-
-Скрипт не требует прав администратора: приложение ставится в `%LOCALAPPDATA%\Programs\` и пользователь имеет права на запись.
+- `install-translation.cmd` — установить перевод.
+- `update-translation.cmd` — повторно применить перевод после обновления OpenChamber.
+- `uninstall-translation.cmd` — удалить перевод.
+- `scripts/` — внутренние PowerShell-скрипты; обычно запускать их напрямую не требуется.
+- `i18n/messages/` — исходные русские словари.
 
 ## Ограничения
-- Стартовые (bootstrap) сообщения приложения («Connecting:», «Connected!» и т. п.) остаются на английском — они встроены в другой бандл и показываются лишь кратко при запуске.
-- После официального обновления OpenChamber (`auto-update`) запустите `refresh-desktop-ru.cmd` — обновление перезаписывает `resources/web-dist/`.
-- Если динамические имена функций/чанков изменятся в будущей версии OpenChamber, патчи могут не найтись — в этом случае скрипт выведет предупреждение и оставит бэкапы для ручного отката.
 
-## Примечания
-- Файл `app.asar` не трогается — веб-UI лежит в `resources/web-dist/` отдельно.
-- Все изменения обратимы через `uninstall-desktop-ru.cmd`.
+- Перевод предназначен для OpenChamber Desktop на Windows.
+- При изменении структуры собранного JavaScript установщик может не найти нужные участки. В таком случае он выведет предупреждение и сохранит резервные копии.
+- Короткие стартовые сообщения приложения могут оставаться на английском.
+- Машинный перевод новых строк требует внешнего LibreTranslate-совместимого API.
+
+## Примечание о форке
+
+Этот репозиторий является форком оригинального проекта [`kotobarsik/openchamber-ru-installer`](https://github.com/kotobarsik/openchamber-ru-installer). Изменения в форке направлены на более простую повторную установку перевода после обновлений OpenChamber и автоматическое определение версии словарей.

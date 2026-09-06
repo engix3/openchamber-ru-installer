@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 function Write-Step { param([string]$m) Write-Host "[i] $m" -ForegroundColor Cyan }
 function Write-Ok   { param([string]$m) Write-Host "[+] $m" -ForegroundColor Green }
@@ -388,5 +388,5 @@ Write-Host '  2. Start OpenChamber again.'
 Write-Host '  3. Open Settings -> Appearance -> Language -> Russian.'
 Write-Host ''
 Write-Host 'To uninstall:' -ForegroundColor DarkGray
-Write-Host '  Run uninstall-desktop-ru.cmd'
+Write-Host '  Run uninstall-translation.cmd'
 Write-Host ''

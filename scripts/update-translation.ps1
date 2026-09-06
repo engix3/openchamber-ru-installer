@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 function Find-OpenChamberInstall {
   if (-not [string]::IsNullOrWhiteSpace($OpenChamberPath)) {
     return (Resolve-Path -LiteralPath $OpenChamberPath).Path
@@ -226,4 +226,4 @@ $translatedMain = Translate-Entries -Entries $missingMain
 
 Append-Entries -Path $ruSettingsPath -Entries $translatedSettings
 Append-Entries -Path $ruMainPath -Entries $translatedMain
-Write-Host "Added $missingCount machine-translated keys. Run install-desktop-ru.cmd to rebuild the Russian bundle." -ForegroundColor Green
+Write-Host "Added $missingCount machine-translated keys. Run update-translation.cmd to rebuild the Russian bundle." -ForegroundColor Green

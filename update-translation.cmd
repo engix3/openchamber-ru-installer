@@ -3,6 +3,7 @@ setlocal
 
 set "SCRIPT_DIR=%~dp0"
 set "POWERSHELL_EXE=C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+set "TARGET=%~1"
 
 if not exist "%POWERSHELL_EXE%" (
   echo PowerShell not found: %POWERSHELL_EXE%
@@ -10,19 +11,17 @@ if not exist "%POWERSHELL_EXE%" (
   exit /b 1
 )
 
-set "TARGET=%~1"
-
 echo ============================================
-echo  OpenChamber Desktop - Uninstall RU patch
+echo  OpenChamber Desktop - Update Russian Translation
 echo ============================================
 echo.
 
-call "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%uninstall-desktop-ru.ps1" -OpenChamberPath "%TARGET%"
+call "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%scripts\install-translation.ps1" -OpenChamberPath "%TARGET%"
 set "EXIT_CODE=%ERRORLEVEL%"
 
 if not "%EXIT_CODE%"=="0" (
   echo.
-  echo Uninstall failed with code %EXIT_CODE%.
+echo Update failed with code %EXIT_CODE%.
   pause
 )
 
