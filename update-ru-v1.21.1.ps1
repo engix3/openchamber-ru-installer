@@ -1,13 +1,34 @@
 param(
   [switch]$DryRun,
   [string]$TranslatorEndpoint,
-  [string]$ApiKey
+  [string]$ApiKey,
+  [string]$OpenChamberPath,
+  [string]$Tag
 )
 
 $ErrorActionPreference = 'Stop'
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$tag = 'v1.21.1'
+function Find-OpenChamberInstall {
+  if (-not [string]::IsNullOrWhiteSpace($OpenChamberPath)) {
+    return (Resolve-Path -LiteralPath $OpenChamberPath).Path
+  }
+
+  $local = Join-Path $env:LOCALAPPDATA 'Programs\@openchamberelectron'
+  if (Test-Path -LiteralPath (Join-Path $local 'OpenChamber.exe')) { return $local }
+  return $null
+}
+
+if ([string]::IsNullOrWhiteSpace($Tag)) {
+  $install = Find-OpenChamberInstall
+  if ($install) {
+    $version = (Get-Item (Join-Path $install 'OpenChamber.exe')).VersionInfo.ProductVersion
+    if ($version -match '^\d+\.\d+\.\d+') { $Tag = "v$($Matches[0])" }
+  }
+}
+if ([string]::IsNullOrWhiteSpace($Tag)) { $Tag = 'v1.21.1' }
+
+$tag = $Tag
 $sourceBase = "https://raw.githubusercontent.com/openchamber/openchamber/$tag/packages/ui/src/lib/i18n/messages"
 $separator = '__OPENCHAMBER_TRANSLATION_SEPARATOR__'
 
