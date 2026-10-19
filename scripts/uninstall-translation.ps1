@@ -82,9 +82,9 @@ function Remove-RuFromLoader {
   param([string]$Loader,[string]$InitOrig)
   $l = $Loader
   $l = [regex]::Replace($l, '(\["en"(?:,"[A-Za-z-]+")*),"ru"\]', '$1]')
-  $l = $l -replace ',ru:"common\.language\.russian"\}', '}'
-  $l = $l -replace 'e==="ru"\|\|e\.startsWith\("ru-"\)\?"ru":', ''
-  $l = $l -replace ':t==="ru"\?await\s+\w+\(\(\)=>import\("\./ru-[^"]+\.js"\)(?:,__vite__mapDeps\(\[[0-9,]*\]\))?(?:,\[\])?\)', ''
+  $l = $l -replace ',ru:"common\.language\.russian"', ''
+  $l = $l -replace '([A-Za-z_$][A-Za-z0-9_$]*)==="ru"\|\|\1\.startsWith\("ru-"\)\?"ru":', ''
+  $l = $l -replace ':[A-Za-z_$][A-Za-z0-9_$]*==="ru"\?await\s+\w+\(\(\)=>import\("\./ru-[^"]+\.js"\)(?:,__vite__mapDeps\(\[[0-9,]*\]\))?(?:,\[\])?\)', ''
   $initLeft = $false
   if ($l -match 'setLocale\("ru"\)') {
     $reversed = $false
@@ -93,7 +93,7 @@ function Remove-RuFromLoader {
     if ($l.Contains($oldForced)) {
       $l = $l.Replace($oldForced, 'function JF(){Is.getState().setLocale(KF())}')
       $reversed = $true
-    } elseif ($InitOrig -and ($m2 = [regex]::Match($l, 'function \$?[A-Za-z0-9_]+\(\)\{try\{typeof window!="undefined"&&window\.localStorage\.setItem\("openchamber\.i18n\.v1",JSON\.stringify\(\{locale:"ru"\}\)\)\}catch\{\}try\{.*?\}catch\(e\)\{\}.*\.getState\(\)\.setLocale\("ru"\)\}')).Success) {
+    } elseif ($InitOrig -and ($m2 = [regex]::Match($l, 'function \$?[A-Za-z0-9_]+\(\)\{try\{typeof window!="undefined"&&window\.localStorage\.setItem\("openchamber\.i18n\.v1",JSON\.stringify\(\{locale:"ru"\}\)\)\}catch\{\}(?:try\{.*?\}catch\(e\)\{\})?.*\.getState\(\)\.setLocale\("ru"\)\}')).Success) {
       $l = $l.Substring(0, $m2.Index) + $InitOrig + $l.Substring($m2.Index + $m2.Length); $reversed = $true
     }
     if (-not $reversed) { $initLeft = ($l -match 'setLocale\("ru"\)') }
@@ -171,14 +171,26 @@ if (-not $ruFiles) { Write-Host '  ru-*.js чанки не найдены.' -For
 
 Write-Step 'Восстанавливаю лоадер i18n из бэкапа...'
 $initLeft = $false
-$i18nFile = Get-ChildItem -LiteralPath $assets -Filter 'useAppFontEffects-*.js' -ErrorAction SilentlyContinue | Select-Object -First 1
+$i18nFile = $null
+if ($stamp -and $stamp.loader) {
+  $i18nFile = Get-ChildItem -LiteralPath $assets -Filter $stamp.loader -ErrorAction SilentlyContinue | Select-Object -First 1
+}
+if (-not $i18nFile) {
+  foreach ($f in (Get-ChildItem -LiteralPath $assets -Filter '*.js' -File -ErrorAction SilentlyContinue)) {
+    $probe = [System.IO.File]::ReadAllText($f.FullName, [System.Text.Encoding]::UTF8)
+    if (($probe -match '\["en"(?:,"[A-Za-z-]+")+\]') -and $probe.Contains('common.language.turkish')) { $i18nFile = $f; break }
+  }
+}
+if (-not $i18nFile) {
+  $i18nFile = Get-ChildItem -LiteralPath $assets -Filter 'useAppFontEffects-*.js' -ErrorAction SilentlyContinue | Select-Object -First 1
+}
 if ($i18nFile) {
   if (Restore-FromBackup -Path $i18nFile.FullName) {
     Write-Ok "  Восстановлен $(Split-Path -Leaf $i18nFile.FullName)"
   } else {
     Write-Warn '  Бэкапа лоадера нет — пробую хирургический откат...'
     $loaderText = [System.IO.File]::ReadAllText($i18nFile.FullName, [System.Text.Encoding]::UTF8)
-    if ($loaderText -match 't==="ru"|,"ru"\]|ru:"common\.language\.russian"|startsWith\("ru-"\)|setLocale\("ru"\)') {
+    if ($loaderText -match '[A-Za-z_$][A-Za-z0-9_$]*==="ru"|,"ru"\]|ru:"common\.language\.russian"|startsWith\("ru-"\)|setLocale\("ru"\)') {
       $rev = Remove-RuFromLoader -Loader $loaderText -InitOrig $stamp.initOrig
       [System.IO.File]::WriteAllText($i18nFile.FullName, $rev.text, (New-Object System.Text.UTF8Encoding $false))
       Write-Ok '  RU-правки вырезаны из лоадера.'
@@ -188,12 +200,12 @@ if ($i18nFile) {
     }
   }
 } else {
-  Write-Warn '  useAppFontEffects-*.js не найден.'
+  Write-Warn '  i18n-лоадер не найден.'
 }
 
 Write-Step 'Восстанавливаю чанки локалей из бэкапов...'
 $localeFiles = Get-ChildItem -LiteralPath $assets -Filter '*.js' -ErrorAction SilentlyContinue | Where-Object {
-  $_.Name -match '^(en|fr|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja|de|tr)-'
+  $_.Name -match '^(en|fr|nl|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja|de|tr)-'
 }
 $restored = 0
 $surgicallyCleaned = 0
@@ -228,12 +240,12 @@ $leftBak = @(Get-ChildItem -LiteralPath $assets -Filter '*.bak' -ErrorAction Sil
 if ($leftBak.Count -gt 0) { Write-Warn ("  остались бэкапы: " + (($leftBak | ForEach-Object { $_.Name }) -join ', ')) }
 if ($i18nFile -and (Test-Path -LiteralPath $i18nFile.FullName)) {
   $finalLoader = [System.IO.File]::ReadAllText($i18nFile.FullName, [System.Text.Encoding]::UTF8)
-  $markers = @('t==="ru"', ',"ru"]', 'ru:"common.language.russian"', 'startsWith("ru-")')
+  $markers = @('==="ru"?await', ',"ru"]', 'ru:"common.language.russian"', 'startsWith("ru-")')
   $hit = @($markers | Where-Object { $finalLoader.Contains($_) })
   if ($hit.Count -gt 0) { Write-Err ("  в лоадере остались RU-маркеры: " + ($hit -join ', ')); $verifyOk = $false }
 }
 $localeLeft = @(Get-ChildItem -LiteralPath $assets -Filter '*.js' -ErrorAction SilentlyContinue | Where-Object {
-  $_.Name -match '^(en|fr|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja|de|tr)-'
+  $_.Name -match '^(en|fr|nl|zh-CN|zh-TW|uk|es|pt-BR|ko|pl|ja|de|tr)-'
 } | Where-Object {
   [System.IO.File]::ReadAllText($_.FullName, [System.Text.Encoding]::UTF8) -match 'common\.language\.russian'
 })
